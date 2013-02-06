@@ -340,25 +340,8 @@ module Bosh::AwsCloud
     # @param [String] stemcell_id EC2 AMI name of the stemcell to be deleted
     def delete_stemcell(stemcell_id)
       with_thread_name("delete_stemcell(#{stemcell_id})") do
-        snapshots = []
-        image = @ec2.images[stemcell_id]
-
-        image.block_device_mappings.to_h.each do |device, map|
-          id = map[:snapshot_id]
-          if id
-            @logger.debug("queuing snapshot #{id} for deletion")
-            snapshots << id
-          end
-        end
-
-        image.deregister
-        # TODO wait for it to go away
-
-        snapshots.each do |id|
-          @logger.info("cleaning up snapshot #{id}")
-          snapshot = @ec2.snapshots[id]
-          snapshot.delete
-        end
+        stemcell = Stemcell.find(region, stemcell_id)
+        stemcell.delete
       end
     end
 

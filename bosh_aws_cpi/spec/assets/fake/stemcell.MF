@@ -1,0 +1,12 @@
+--- 
+name: micro-bosh-stemcell
+version: 0.8.3
+bosh_protocol: 1
+cloud_properties: 
+  name: micro-bosh-stemcell
+  version: 0.8.3
+  infrastructure: aws
+  architecture: x86_64
+  root_device_name: /dev/sda1
+  ami:
+    us-east-1: ami-xxxxxx
