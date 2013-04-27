@@ -202,6 +202,77 @@ describe Bosh::Cli::Command::Base do
 
       @cmd.list
     end
+
+    describe "updating the target" do
+      before do
+        @cmd.stub!(:target).and_return("test")
+        @cmd.stub!(:username).and_return("user")
+        @cmd.stub!(:password).and_return("pass")
+      end
+
+      context "when the director uuid is set to ignore" do
+        let(:manifest) { {"director_uuid" => "ignore"} }
+
+        it "doesn't change the config target" do
+          expect {
+            @cmd.update_target(manifest)
+          }.not_to change { @cmd.config.target }
+        end
+      end
+
+      context "when the director uuid is set to an actual uuid" do
+        let(:manifest) { {"director_uuid" => "r3a1-uu1d"} }
+        before do
+          Bosh::Cli::Director.
+            should_receive(:new).
+            with("test", "user", "pass").
+            and_return(@director)
+        end
+
+        context "when the given uuid matches the old director uuid" do
+          before { @director.stub(get_status: {"uuid" => "r3a1-uu1d"}) }
+
+          it "doesn't change the config target" do
+            expect {
+              @cmd.update_target(manifest)
+            }.not_to change { @cmd.config.target }
+          end
+        end
+
+        context "when the given uuid is different from the old director uuid" do
+          before { @director.stub(get_status: {"uuid" => "d1ff-r3nt"}) }
+
+          context "when the config can resolve the given uuid" do
+            before do
+              @cmd.config.
+                stub(:resolve_alias).
+                with(:target, "r3a1-uu1d").
+                and_return("123.123.123.123")
+            end
+
+            it "changes the config target" do
+              expect {
+                @cmd.update_target(manifest)
+              }.to change { @cmd.config.target }.to("123.123.123.123")
+            end
+          end
+
+          context "when the config can't resolve the given uuid" do
+            it "warns the user that it doesn't recognize the uuid" do
+              expect {
+                @cmd.update_target(manifest)
+              }.to raise_error(/This manifest references director with UUID/i)
+            end
+
+            it "doesn't change the config target" do
+              expect {
+                @cmd.update_target(manifest) rescue nil
+              }.not_to change { @cmd.config.target }
+            end
+          end
+        end
+      end
+    end
   end
 
   describe Bosh::Cli::Command::Release do
