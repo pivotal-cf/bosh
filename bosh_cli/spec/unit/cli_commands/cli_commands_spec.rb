@@ -85,7 +85,7 @@ describe Bosh::Cli::Command::Base do
 
     it "respects director checks option when logging in" do
       @director.stub!(:get_status).
-        and_return({ "user" => "user", "name" => "ZB" })
+        and_return({"user" => "user", "name" => "ZB"})
       @director.stub(:authenticated?).and_return(true)
 
       @cmd.set_target("test")
@@ -102,7 +102,7 @@ describe Bosh::Cli::Command::Base do
     before :each do
       @director = mock(Bosh::Cli::Director)
       @director.stub(:list_stemcells).
-          and_return([{ "name" => "foo", "version" => "123" }])
+        and_return([{"name" => "foo", "version" => "123"}])
       @director.should_receive(:list_stemcells)
 
       @cmd = Bosh::Cli::Command::Stemcell.new
@@ -134,7 +134,7 @@ describe Bosh::Cli::Command::Base do
       lambda {
         @cmd.delete("foo", "111")
       }.should raise_error(Bosh::Cli::CliError,
-                           "Stemcell `foo/111' does not exist")
+        "Stemcell `foo/111' does not exist")
     end
   end
 
@@ -168,7 +168,7 @@ describe Bosh::Cli::Command::Base do
 
     it "lists deployments and doesn't fetch manifest on new director" do
       @director.should_receive(:list_deployments).
-        and_return([{ "name" => "foo", "releases" => [], "stemcells" => [] }])
+        and_return([{"name" => "foo", "releases" => [], "stemcells" => []}])
       @director.should_not_receive(:get_deployment)
 
       @cmd.list
@@ -176,10 +176,75 @@ describe Bosh::Cli::Command::Base do
 
     it "lists deployments and fetches manifest on old director" do
       @director.should_receive(:list_deployments).
-        and_return([{ "name" => "foo" }])
+        and_return([{"name" => "foo"}])
       @director.should_receive(:get_deployment).with("foo").and_return({})
 
       @cmd.list
+    end
+
+    describe "updating the target" do
+      context "when the director uuid is set to ignore" do
+        let(:manifest) { {"director_uuid" => "ignore"} }
+
+        it "doesn't change the config target" do
+          expect {
+            @cmd.update_target(manifest)
+          }.not_to change { @cmd.config.target }
+        end
+      end
+
+      context "when the director uuid is set to an actual uuid" do
+        let(:manifest) { {"director_uuid" => "r3a1-uu1d"} }
+        before do
+          Bosh::Cli::Director.
+            stub(:new).
+            with("test", "user", "pass").
+            and_return(@director)
+        end
+
+        context "when the given uuid matches the old director uuid" do
+          before { @director.stub(get_status: {"uuid" => "r3a1-uu1d"}) }
+
+          it "doesn't change the config target" do
+            expect {
+              @cmd.update_target(manifest)
+            }.not_to change { @cmd.config.target }
+          end
+        end
+
+        context "when the given uuid is different from the old director uuid" do
+          before { @director.stub(get_status: {"uuid" => "d1ff-r3nt"}) }
+
+          context "when the config can resolve the given uuid" do
+            before do
+              @cmd.config.
+                stub(:resolve_alias).
+                with(:target, "r3a1-uu1d").
+                and_return("123.123.123.123")
+            end
+
+            it "changes the config target" do
+              expect {
+                @cmd.update_target(manifest)
+              }.to change { @cmd.config.target }.to("123.123.123.123")
+            end
+          end
+
+          context "when the config can't resolve the given uuid" do
+            it "warns the user that it doesn't recognize the uuid" do
+              expect {
+                @cmd.update_target(manifest)
+              }.to raise_error(/This manifest references director with UUID/i)
+            end
+
+            it "doesn't change the config target" do
+              expect {
+                @cmd.update_target(manifest) rescue nil
+              }.not_to change { @cmd.config.target }
+            end
+          end
+        end
+      end
     end
   end
 
@@ -198,14 +263,14 @@ describe Bosh::Cli::Command::Base do
 
     it "allows deleting the release (non-force)" do
       @director.should_receive(:delete_release).
-          with("foo", :force => false, :version => nil)
+        with("foo", :force => false, :version => nil)
 
       @cmd.delete("foo")
     end
 
     it "allows deleting the release (force)" do
       @director.should_receive(:delete_release).
-          with("foo", :force => true, :version => nil)
+        with("foo", :force => true, :version => nil)
 
       @cmd.add_option(:force, true)
       @cmd.delete("foo")
@@ -213,14 +278,14 @@ describe Bosh::Cli::Command::Base do
 
     it "allows deleting a particular release version (non-force)" do
       @director.should_receive(:delete_release).
-          with("foo", :force => false, :version => "42")
+        with("foo", :force => false, :version => "42")
 
       @cmd.delete("foo", "42")
     end
 
     it "allows deleting a particular release version (force)" do
       @director.should_receive(:delete_release).
-          with("foo", :force => true, :version => "42")
+        with("foo", :force => true, :version => "42")
 
       @cmd.add_option(:force, true)
       @cmd.delete("foo", "42")
@@ -239,7 +304,7 @@ describe Bosh::Cli::Command::Base do
   describe Bosh::Cli::Command::JobManagement do
     before :each do
       @manifest_path = spec_asset("deployment.MF")
-      @manifest_yaml = YAML.dump({ "name" => "foo" })
+      @manifest_yaml = YAML.dump({"name" => "foo"})
 
       @cmd = Bosh::Cli::Command::JobManagement.new
       @cmd.add_option(:non_interactive, true)
