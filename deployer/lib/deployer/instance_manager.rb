@@ -7,6 +7,7 @@ module Bosh::Deployer
 
     attr_reader :state
     attr_accessor :renderer
+    attr_accessor :http_client
 
     class LoggerRenderer
       attr_accessor :stage, :total, :index
@@ -53,6 +54,7 @@ module Bosh::Deployer
       Config.uuid = state.uuid
 
       @renderer = LoggerRenderer.new
+      @http_client = HTTPClient.new
     end
 
     def cloud
@@ -441,9 +443,9 @@ module Bosh::Deployer
       timeout_time = Time.now.to_f + (60 * 5)
       begin
         yield
-        sleep 0.5
-      rescue Bosh::Agent::Error, Errno::ECONNREFUSED => e
+      rescue Bosh::Agent::Error, Errno::ECONNREFUSED, HTTPClient::ConnectTimeoutError => e
         if timeout_time - Time.now.to_f > 0
+          sleep 0.5
           retry
         else
           raise e
@@ -459,7 +461,7 @@ module Bosh::Deployer
       port = @apply_spec["properties"]["director"]["port"]
       url = "http://#{bosh_ip}:#{port}/info"
       wait_until_ready do
-        info = Yajl::Parser.parse(HTTPClient.new.get(url).body)
+        info = Yajl::Parser.parse(@http_client.get(url).body)
         logger.info("Director is ready: #{info.inspect}")
       end
     end
