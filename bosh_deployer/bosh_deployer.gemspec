@@ -17,16 +17,13 @@ Gem::Specification.new do |s|
   s.files         = `git ls-files -- lib/* config/*`.split("\n") + %w(README.rdoc)
   s.require_paths = ["lib", "config"]
 
-  s.bindir       = "bin"
-  s.executables  = %w(stemcell-copy)
-
   s.add_dependency "bosh_cli", "~>#{version}"
   s.add_dependency "bosh_cpi", "~>#{version}"
   s.add_dependency "bosh_vcloud_cpi", "~>#{version}"
   s.add_dependency "bosh_vsphere_cpi", "~>#{version}"
   s.add_dependency "bosh_aws_cpi", "~>#{version}"
   s.add_dependency "bosh_aws_registry", "~>#{version}"
-  s.add_dependency "bosh_openstack_cpi", "~>0.0.7"
+  s.add_dependency "bosh_openstack_cpi", "~>#{version}"
   s.add_dependency "bosh_openstack_registry", "~>#{version}"
   s.add_dependency "agent_client", "~>#{version}"
   s.add_dependency "sqlite3", "~>1.3.7"

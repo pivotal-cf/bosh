@@ -5,20 +5,6 @@ require "tmpdir"
 
 require "cloud/aws"
 
-class AwsConfig
-  attr_accessor :db, :logger, :uuid
-  def task_checkpoint
-
-  end
-end
-
-aws_config = AwsConfig.new
-aws_config.db = nil # AWS CPI doesn't need DB
-aws_config.logger = Logger.new(StringIO.new)
-aws_config.logger.level = Logger::DEBUG
-
-Bosh::Clouds::Config.configure(aws_config)
-
 MOCK_AWS_ACCESS_KEY_ID = "foo"
 MOCK_AWS_SECRET_ACCESS_KEY = "bar"
 
@@ -42,6 +28,7 @@ def mock_cloud_options
       "access_key_id" => MOCK_AWS_ACCESS_KEY_ID,
       "secret_access_key" => MOCK_AWS_SECRET_ACCESS_KEY,
       "region" => "us-east-1",
+      "default_key_name" => "sesame",
       "default_security_groups" => []
     },
     "registry" => {
@@ -76,12 +63,12 @@ def mock_cloud(options = nil)
 end
 
 def mock_ec2
-  region = double("region")
+  region = double(AWS::EC2::Region)
   ec2 = double(AWS::EC2,
-               :instances => double("instances"),
-               :volumes => double("volumes"),
-               :images => double("images"),
-               :regions => double("regions", :[] => region))
+               :instances => double(AWS::EC2::InstanceCollection),
+               :volumes => double(AWS::EC2::VolumeCollection),
+               :images => double(AWS::EC2::ImageCollection),
+               :regions => double(AWS::EC2::RegionCollection, :[] => region))
 
   yield ec2, region if block_given?
 
@@ -122,4 +109,8 @@ end
 
 def asset(filename)
   File.expand_path(File.join(File.dirname(__FILE__), "assets", filename))
+end
+
+RSpec.configure do |config|
+  config.before(:each) { Bosh::Clouds::Config.stub(:logger).and_return(double.as_null_object)  }
 end

@@ -6,8 +6,10 @@ set -e
 
 base_dir=$(readlink -nf $(dirname $0)/../..)
 source $base_dir/lib/prelude_apply.bash
-
 disk_image_name=root.img
+
+# unmap the loop device in case it's already mapped
+kpartx -dv $work/$disk_image_name
 
 # Map partition in image to loopback
 dev=$(kpartx -av $work/$disk_image_name | grep "^add" | cut -d" " -f3)
@@ -21,6 +23,7 @@ mount /dev/mapper/$dev $mnt
 mkdir -p $mnt/tmp/grub
 
 touch $mnt/tmp/grub/$disk_image_name
+
 mount --bind $work/$disk_image_name $mnt/tmp/grub/$disk_image_name
 
 cat > $mnt/tmp/grub/device.map <<EOS

@@ -1,6 +1,6 @@
 # Copyright (c) 2009-2012 VMware, Inc.
 
-source :rubygems
+source 'https://rubygems.org' 
 
 gem "agent_client", path: "agent_client"
 gem "blobstore_client", path: "blobstore_client"
@@ -13,6 +13,7 @@ gem "bosh_cpi", path: "bosh_cpi"
 gem "bosh_cli", path: "bosh_cli"
 gem "bosh_deployer", path: "bosh_deployer"
 gem "bosh_encryption", path: "bosh_encryption"
+gem "bosh_openstack_cpi", path: "bosh_openstack_cpi"
 gem "bosh_openstack_registry", path: "bosh_openstack_registry"
 gem "bosh_vcloud_cpi", path: "bosh_vcloud_cpi"
 gem "bosh_vsphere_cpi", path: "bosh_vsphere_cpi"
