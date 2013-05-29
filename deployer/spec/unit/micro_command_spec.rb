@@ -3,15 +3,13 @@
 require File.expand_path("../../spec_helper", __FILE__)
 
 describe Bosh::Cli::Command::Base do
-
-  before :each do
+  before do
     @config = File.join(Dir.mktmpdir, "bosh_config")
     @cache = File.join(Dir.mktmpdir, "bosh_cache")
   end
 
   describe Bosh::Cli::Command::Micro do
-
-    before :each do
+    before do
       @cmd = Bosh::Cli::Command::Micro.new(nil)
       @cmd.add_option(:non_interactive, true)
       @cmd.add_option(:config, @config)
@@ -82,6 +80,68 @@ describe Bosh::Cli::Command::Base do
       }.should raise_error(Bosh::Cli::CliExit, "No persistent disk configured!")
     end
 
-  end
+    describe "deploying/updating with --update-if-exists flag" do
+      let(:deployer) do
+        mock(Bosh::Deployer::InstanceManager, {
+          :renderer= => nil, :discover_bosh_ip => nil})
+      end
 
+      before do
+        deployer.stub(check_dependencies: true)
+        @cmd.stub(deployer: deployer)
+        @cmd.stub(deployment: @manifest_path)
+        @cmd.stub(target_name: "micro-test")
+        @cmd.stub(load_yaml_file: @manifest_yaml)
+        @cmd.stub(:update_target)
+      end
+
+      let(:tarball_path) { "some-stemcell-path" }
+
+      context "when microbosh is not deployed" do
+        before { deployer.stub(exists?: false) }
+
+        context "when --update-if-exists flag is given" do
+          before { @cmd.add_option(:update_if_exists, true) }
+
+          it "creates microbosh and returns successfully" do
+            deployer.should_receive(:create_deployment)
+            @cmd.perform(tarball_path)
+          end
+        end
+
+        context "when --update-if-exists flag is not given" do
+          it "creates microbosh and returns successfully" do
+            deployer.should_receive(:create_deployment)
+            @cmd.perform(tarball_path)
+          end
+        end
+      end
+
+      context "when microbosh is already deployed" do
+        before { deployer.stub(exists?: true) }
+
+        context "when --update-if-exists flag is given" do
+          before { @cmd.add_option(:update_if_exists, true) }
+
+          it "updates microbosh and returns successfully" do
+            deployer.should_receive(:update_deployment)
+            @cmd.perform(tarball_path)
+          end
+        end
+
+        context "when --update-if-exists flag is not given" do
+          it "does not update microbosh" do
+            deployer.should_not_receive(:update_deployment)
+            @cmd.perform(tarball_path) rescue nil
+          end
+
+          it "raises an error" do
+            expect {
+              @cmd.perform(tarball_path)
+            }.to raise_error(Bosh::Cli::CliError, /Instance exists/)
+          end
+        end
+      end
+    end
+  end
 end
