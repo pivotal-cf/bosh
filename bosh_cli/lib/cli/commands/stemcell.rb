@@ -38,6 +38,7 @@ module Bosh::Cli::Command
     # bosh upload stemcell
     usage "upload stemcell"
     desc "Upload stemcell (stemcell_location can be a local file or a remote URI)"
+    option "--skip-if-exists", "skips upload if stemcell already exists"
     def upload(stemcell_location)
       auth_required
 
@@ -59,12 +60,16 @@ module Bosh::Cli::Command
         version = stemcell.manifest["version"]
   
         if exists?(name, version)
-          err("Stemcell `#{name}/#{version}' already exists, " +
-                "increment the version if it has changed")
+          if options[:skip_if_exists]
+            say("Stemcell `#{name}/#{version}' already exists. Skipping upload.")
+            return
+          else
+            err("Stemcell `#{name}/#{version}' already exists, increment the version if it has changed")
+          end
         else
           say("No")
         end
-        
+
         stemcell_location = stemcell.stemcell_file
 
         nl
@@ -228,11 +233,9 @@ module Bosh::Cli::Command
     end
 
     def exists?(name, version)
-      existing = director.list_stemcells.select do |sc|
+      director.list_stemcells.any? do |sc|
         sc["name"] == name && sc["version"] == version
       end
-
-      !existing.empty?
     end
 
     # Grabs the index file for the publicly available stemcells.

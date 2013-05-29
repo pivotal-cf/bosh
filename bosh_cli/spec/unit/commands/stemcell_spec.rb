@@ -26,6 +26,10 @@ describe Bosh::Cli::Command::Stemcell do
         cache.stub(:read).and_return(nil)
         cache.stub(:write)
       end
+      
+      before { stemcell.stub(:validate) }
+      before { stemcell.stub(valid?: true) }
+      before { stemcell.stub(stemcell_file: stemcell_archive) }
 
       context 'local stemcell' do
         it 'should upload the stemcell' do
@@ -57,6 +61,47 @@ describe Bosh::Cli::Command::Stemcell do
           expect {
             command.upload(stemcell_archive)
           }.to raise_error(Bosh::Cli::CliError, /already exists/)
+        end
+
+        context "when stemcell does not exist" do
+          before { director.stub(list_stemcells: []) }
+
+          it "uploads stemcell and returns successfully" do
+            director.should_receive(:upload_stemcell).with(stemcell_archive)
+            command.upload(stemcell_archive)
+          end
+        end
+
+        context "when stemcell already exists" do
+          before { director.stub(list_stemcells: [{"name" => "ubuntu-stemcell", "version" => 1}]) }
+
+          context "when --skip-if-exists flag is given" do
+            before { command.add_option(:skip_if_exists, true) }
+
+            it "does not upload stemcell" do
+              director.should_not_receive(:upload_stemcell)
+              command.upload(stemcell_archive)
+            end
+
+            it "returns successfully" do
+              expect {
+                command.upload(stemcell_archive)
+              }.to_not raise_error
+            end
+          end
+
+          context "when --skip-if-exists flag is not given" do
+            it "does not upload stemcell" do
+              director.should_not_receive(:upload_stemcell)
+              command.upload(stemcell_archive) rescue nil
+            end
+
+            it "raises an error" do
+              expect {
+                command.upload(stemcell_archive)
+              }.to raise_error(Bosh::Cli::CliError, /already exists/)
+            end
+          end
         end
       end
 
