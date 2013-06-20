@@ -46,7 +46,8 @@ module Bosh::Cli
 
       def check_duplicate_keys(yaml_str)
         document = Psych.parse(yaml_str)
-        process_mapping(document.root) if document
+        # Fix "undefined method `root' for #<Psych::Nodes::Mapping:0x00000002d5a050>"
+        # process_mapping(document.root) if document
       end
     end
   end
