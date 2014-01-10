@@ -230,10 +230,10 @@ describe Bosh::Cli::DeploymentHelper do
       manifest_file = Tempfile.new('manifest')
       YAML.dump(manifest, manifest_file)
       manifest_file.close
-      director = mock(Bosh::Cli::Client::Director)
+      director = double(Bosh::Cli::Client::Director)
 
-      cmd.stub!(:deployment).and_return(manifest_file.path)
-      cmd.stub!(:director).and_return(director)
+      cmd.stub(:deployment).and_return(manifest_file.path)
+      cmd.stub(:director).and_return(director)
 
       director.should_receive(:uuid).and_return('deadcafe')
 
